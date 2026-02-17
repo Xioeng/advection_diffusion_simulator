@@ -1,9 +1,9 @@
-import os
-import time
-
 import dolfin as df
+import matplotlib.pyplot as plt
 import numpy as np
-from utils import MyVariableExpression
+import tqdm
+
+from advection_diffusion_simulator.utils import MyVariableExpression
 
 N_POINTS_P_AXIS = 20
 TIME = 1.0
@@ -89,10 +89,9 @@ def solve_pde(
     )
     # time.sleep(1.0)
 
-    for t in dts:
+    for t in tqdm.tqdm(dts):
         # Creates the weak formulation
-        os.system("clear")
-        print(f"Time {t}...", end="")
+
         u_sol = df.Function(function_space)
         a = (
             u_trial * v_test * df.dx
@@ -113,8 +112,11 @@ def solve_pde(
 
 if __name__ == "__main__":
     solutions, gradients, _ = solve_pde()
+
     print(len(solutions))
     solution = lambda x, n: np.array(solutions[n](x))
     gradient = lambda x, n: np.array(gradients[n](x))
     print(solution([0.4, 0.2], 0))
     print(gradient([0.5, 0.5], 5))
+    df.plot(solutions[-1])
+    plt.show()
