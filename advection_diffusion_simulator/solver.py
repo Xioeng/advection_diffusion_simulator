@@ -348,10 +348,20 @@ class ADSolver:
             else self.polygon_points_metric,
             grid_resolution=self.config.meshgrid_resolution,
         )
+        if self.config.are_coordinates_lonlat:
+            # If original coordinates were lon/lat, convert meshgrid back to lon/lat
+            x_min, x_max = self.config.x_range
+            y_min, y_max = self.config.y_range
+            geo_meshgrid = np.meshgrid(
+                np.linspace(x_min, x_max, num=self.config.meshgrid_resolution[0]),
+                np.linspace(y_min, y_max, num=self.config.meshgrid_resolution[1]),
+            )
 
         # Create result object
         result = ADResult(
-            meshgrid=meshgrid,
+            meshgrid=meshgrid
+            if not self.config.are_coordinates_lonlat
+            else geo_meshgrid,
             solutions=solutions,
             config=self.config,
             time_steps=np.concatenate([[0], time_values[1:]]),

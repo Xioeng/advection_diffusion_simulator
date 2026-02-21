@@ -1,6 +1,7 @@
 import os
 import sys
 
+import cartopy.crs as ccrs
 import numpy as np
 
 # Add parent directory to path
@@ -31,15 +32,14 @@ def main():
     # Example: Simplified Biscayne Bay polygon (counterclockwise)
     # These points will be automatically sorted counterclockwise
     polygon_points = [
-        [-80.13725460, 25.91157340],
-        [-80.13679060, 25.91166500],
-        [-80.13728140, 25.91236710],
-        [-80.13773740, 25.91295090],
-        [-80.13797610, 25.91293890],
-        [-80.13793050, 25.91284240],
-        [-80.13782590, 25.91283990],
-        [-80.13779370, 25.91274340],
-        [-80.13783400, 25.91270240],
+        [-80.13723580, 25.91152270],
+        [-80.13673690, 25.91170120],
+        [-80.13783130, 25.91306670],
+        [-80.13801100, 25.91305950],
+        [-80.13793050, 25.91287370],
+        [-80.13782860, 25.91287130],
+        [-80.13779640, 25.91273860],
+        [-80.13786880, 25.91272170],
     ]
 
     # Mesh resolution (higher = finer mesh)
@@ -67,8 +67,7 @@ def main():
         element_family="P",
         are_coordinates_lonlat=True,  # Set to True if using lon/lat coordinates
         # Output
-        output_dir="biscayne_output",
-        multiple_output_times=True,
+        output_dir="biscayne_salinity",
     )
 
     print(f"\nConfiguration:")
@@ -119,7 +118,7 @@ def main():
     # TODO: Define initial condition
     initial_cond_func = utils.load_into_interpolator(
         "data/asv_datasets/iteration_2/20250609_173859.h5",
-        column_names=["ODO (mg/L)"],
+        column_names=["Salinity (PPT)"],
         data_len=500,
     )
     mapper = GeographicCoordinateMapper(
@@ -215,23 +214,74 @@ def main():
 
     # Example: Plot using matplotlib
     try:
+        import cartopy.io.img_tiles as cimgt
         import matplotlib.pyplot as plt
 
         print("\nGenerating plots...")
 
-        # Plot initial and final solutions
+        # Create a satellite tile source
+        satellite_tiles = cimgt.GoogleTiles(style="satellite")
+        # Alternative options:
+        # satellite_tiles = cimgt.Stamen('terrain')
+        # satellite_tiles = cimgt.QuadtreeTiles()
 
-        fig, axes = plt.subplots(3, 3, figsize=(12, 12))
+        # Plot initial and final solutions
+        if config.are_coordinates_lonlat:
+            fig, axes = plt.subplots(
+                2,
+                3,
+                figsize=(15, 12),
+                subplot_kw={"projection": satellite_tiles.crs},
+            )
+        else:
+            fig, axes = plt.subplots(2, 3, figsize=(12, 12))
         axes = axes.flatten()
 
-        indices = np.linspace(0, result.solutions.shape[0] - 1, 9, dtype=np.int64)
+        # Calculate extent for satellite imagery
+        lon_min = np.min(config.polygon_points[:, 0])
+        lon_max = np.max(config.polygon_points[:, 0])
+        lat_min = np.min(config.polygon_points[:, 1])
+        lat_max = np.max(config.polygon_points[:, 1])
+        # Add small buffer around domain
+        buffer = 0.0005
+        extent = [
+            lon_min - buffer,
+            lon_max + buffer,
+            lat_min - buffer,
+            lat_max + buffer,
+        ]
+
+        indices = np.linspace(
+            0, result.solutions.shape[0] - 1, len(axes), dtype=np.int64
+        )
         for ax, idx in zip(axes, indices):
+            # Set extent before adding satellite imagery
+            ax.set_extent(extent, crs=ccrs.PlateCarree())
+
+            # Add satellite imagery (zoom level: higher = more detail, but slower)
+            ax.add_image(
+                satellite_tiles, 18
+            )  # Adjust zoom level as needed (14-19 for local areas)
+
             ax.set_aspect("equal")
-            # ax.set_xticks([])
-            # ax.set_yticks([])
             u_plot = np.ma.masked_where(~result.mesh_mask, result.solutions[idx])
-            c = ax.contourf(*result.meshgrid, u_plot, levels=50, cmap="viridis")
+            c = ax.contourf(
+                *result.meshgrid,
+                u_plot,
+                levels=50,
+                cmap="viridis",
+                alpha=0.9,  # Make contours semi-transparent to see satellite underneath
+                transform=ccrs.PlateCarree(),
+            )
             ax.set_title(f"t={result.time_steps[idx]:.1f}s")
+            gl = ax.gridlines(
+                crs=ccrs.PlateCarree(),
+                # draw_labels=True,
+                # linewidth=2,
+                alpha=0.4,
+            )
+            gl.top_labels = False
+            gl.right_labels = False
             plt.colorbar(c, ax=ax)
 
         # Final solution

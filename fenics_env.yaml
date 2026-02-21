@@ -131,7 +131,7 @@ dependencies:
   - superlu=7.0.1=h8f6e6c4_0
   - superlu_dist=9.1.0=h0804ebd_0
   - sympy=1.14.0=pyh2585a3b_105
-  - sysroot_linux-64=2.39=hc4b9eeb_5
+  - sysroot_linux-64<2.39
   - tbb=2022.3.0=h8d10470_1
   - tk=8.6.13=noxft_h366c992_103
   - ucx=1.19.1=h567e125_0

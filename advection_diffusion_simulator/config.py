@@ -39,7 +39,6 @@ class AdvectionDiffusionConfig:
 
     # Output parameters
     output_dir: Optional[str] = None
-    multiple_output_times: bool = True
 
     def __post_init__(self):
         """Validate configuration parameters."""
@@ -54,7 +53,7 @@ class AdvectionDiffusionConfig:
                 raise ValueError("polygon_points must be a 2D array with shape (n, 2)")
             if len(self.polygon_points) < 3:
                 raise ValueError("polygon_points must have at least 3 points")
-            self.polygon_points = utils.sort_coordinates(self.polygon_points)
+            # self.polygon_points = utils.sort_coordinates(self.polygon_points)
             self.x_range = (
                 np.min(self.polygon_points[:, 0]),
                 np.max(self.polygon_points[:, 0]),
